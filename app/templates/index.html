@@ -5,7 +5,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>日语打字练习 — 多模式</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="{{ url_for('static', filename='js/index.js') }}"></script>
     <style>
         .char-correct {
             color: #10b981;
@@ -224,7 +224,22 @@
         document.getElementById('mode').addEventListener('change', e => { state.mode = e.target.value; });
 
         // nick
-        function saveNick() { const v = document.getElementById('nickname').value.trim(); if (!v) return; state.user = v; localStorage.setItem('jp_user', v); document.getElementById('currentUser').textContent = v; }
+        function saveNick() {
+            const v = document.getElementById('nickname').value.trim();
+            if (!v) return; state.user = v; localStorage.setItem('jp_user', v);
+            document.getElementById('currentUser').textContent = v;
+            fetch("/register", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ nickname: v })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    alert(data.msg);
+                });
+        }
         function loadNick() { const v = localStorage.getItem('jp_user'); if (v) { state.user = v; document.getElementById('nickname').value = v; document.getElementById('currentUser').textContent = v; } }
         function logout() { state.user = null; localStorage.removeItem('jp_user'); document.getElementById('currentUser').textContent = '未登录'; document.getElementById('nickname').value = ''; }
         document.getElementById('saveNick').addEventListener('click', saveNick);
