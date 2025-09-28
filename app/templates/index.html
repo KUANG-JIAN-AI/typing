@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>日语打字练习 — 多模式</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .char-correct {
+            color: #10b981;
+        }
+
+        .char-wrong {
+            color: #ef4444;
+        }
+    </style>
+</head>
+
+<body class="bg-gradient-to-b from-slate-900 to-slate-800 text-slate-100 min-h-screen">
+    <div class="max-w-7xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- main -->
+        <main class="lg:col-span-2 bg-slate-900/60 rounded-2xl shadow-xl p-6">
+            <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-400 flex items-center justify-center font-bold text-slate-900">
+                        日</div>
+                    <div>
+                        <h1 class="text-xl font-semibold">日语打字练习</h1>
+                        <p class="text-sm text-slate-400">一行一句 → 输入框在文字下方</p>
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-3 items-center">
+                    <div class="flex gap-4 text-sm text-slate-400">
+                        <div>时间: <span id="time" class="font-semibold text-slate-100">00:00</span></div>
+                        <div>准确率: <span id="accuracy" class="font-semibold text-slate-100">100%</span></div>
+                        <div>已完成: <span id="done">0</span>/<span id="total">0</span></div>
+                    </div>
+                    <select id="mode" class="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-sm">
+                        <option value="normal">普通模式</option>
+                        <option value="timed">计时赛 (60秒)</option>
+                        <option value="limit">限时挑战 (90秒)</option>
+                        <option value="long">长文训练</option>
+                    </select>
+                    <select id="difficulty" class="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-sm">
+                        <option value="easy">简单</option>
+                        <option value="medium">中等</option>
+                        <option value="hard">困难</option>
+                    </select>
+                    <button id="resetBtn"
+                        class="px-3 py-1 rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-700">重置</button>
+                    <button id="pauseBtn"
+                        class="px-3 py-1 rounded-lg bg-gradient-to-r from-emerald-400 to-cyan-400 text-slate-900 font-medium">暂停</button>
+                    <button id="endBtn"
+                        class="px-3 py-1 rounded-lg bg-rose-500 hover:bg-rose-600 text-white">结束</button>
+                </div>
+            </header>
+
+            <div class="flex gap-3 mb-4">
+                <button id="loadSample"
+                    class="px-3 py-1 rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-700">加载示例</button>
+                <button id="pasteText"
+                    class="px-3 py-1 rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-700">从剪贴板粘贴</button>
+                <button id="exportCsv"
+                    class="px-3 py-1 rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-700">导出成绩
+                    CSV</button>
+            </div>
+
+            <div id="typing" class="space-y-4 max-h-[65vh] overflow-y-auto"></div>
+        </main>
+
+        <!-- sidebar -->
+        <aside class="space-y-6">
+            <div class="bg-slate-900/60 rounded-2xl p-4 shadow-xl space-y-3">
+                <div class="flex justify-between items-center">
+                    <strong>用户</strong>
+                    <span id="currentUser" class="text-slate-400 text-sm">未登录</span>
+                </div>
+                <input id="nickname" placeholder="输入昵称（本地保存）"
+                    class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700" />
+                <div class="flex gap-2">
+                    <button id="saveNick"
+                        class="flex-1 px-3 py-1 rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-700">保存</button>
+                    <button id="logout"
+                        class="flex-1 px-3 py-1 rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-700">登出</button>
+                </div>
+            </div>
+            <div class="bg-slate-900/60 rounded-2xl p-4 shadow-xl">
+                <strong>排行榜 — 准确率</strong>
+                <div id="leaderAcc" class="mt-3 space-y-2"></div>
+            </div>
+            <div class="bg-slate-900/60 rounded-2xl p-4 shadow-xl">
+                <strong>排行榜 — 练习时长</strong>
+                <div id="leaderTime" class="mt-3 space-y-2"></div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- 成绩总结弹窗 -->
+    <div id="resultModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50">
+        <div class="bg-slate-900 rounded-2xl p-6 max-w-md w-full shadow-2xl text-center">
+            <h2 class="text-xl font-bold mb-4">练习总结</h2>
+            <p class="mb-2">昵称: <span id="summaryName"></span></p>
+            <p class="mb-2">用时: <span id="summaryTime"></span></p>
+            <p class="mb-2">准确率: <span id="summaryAcc"></span></p>
+            <p class="mb-2">完成行数: <span id="summaryDone"></span></p>
+            <div class="mt-4 flex justify-center gap-4">
+                <button id="closeModal"
+                    class="px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const sample = `日本の文化はとても面白いです。\n桜の季節には公園が美しくなります。\n京都の寺院を訪れるのが好きです。\n寿司は新鮮な魚が命です。\n毎日少しずつ日本語を練習しましょう。`;
+
+        const state = { lines: [], stats: { done: 0, correct: 0, totalChars: 0 }, elapsed: 0, timer: null, paused: false, user: null, mode: 'normal', limit: 0 };
+
+        function formatTime(sec) { const m = Math.floor(sec / 60).toString().padStart(2, '0'); const s = (sec % 60).toString().padStart(2, '0'); return `${m}:${s}`; }
+        function escapeHtml(s) { return String(s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' }[m])); }
+
+        function updateUI() {
+            document.getElementById('time').textContent = formatTime(state.elapsed);
+            document.getElementById('done').textContent = state.stats.done;
+            document.getElementById('total').textContent = state.lines.length;
+            const acc = state.stats.totalChars ? Math.round((state.stats.correct / state.stats.totalChars) * 100) : 100;
+            document.getElementById('accuracy').textContent = acc + '%';
+        }
+
+        function renderLines(text) {
+            const typing = document.getElementById('typing'); typing.innerHTML = '';
+            state.lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+            state.stats = { done: 0, correct: 0, totalChars: state.lines.reduce((s, l) => s + l.length, 0) };
+            state.elapsed = 0; clearInterval(state.timer); state.paused = false;
+            setupMode(); startTimer();
+            state.lines.forEach((line, idx) => {
+                const wrap = document.createElement('div');
+                const prompt = document.createElement('div'); prompt.className = 'text-base mb-2'; prompt.textContent = line;
+                const input = document.createElement('input'); input.className = 'w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700';
+                input.dataset.index = idx;
+                input.addEventListener('input', () => highlightInput(input, line, idx));
+                input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); checkLine(input, line, idx); const next = document.querySelector(`input[data-index='${idx + 1}']`); if (next) next.focus(); else finishSession(); } });
+                wrap.appendChild(prompt); wrap.appendChild(input); typing.appendChild(wrap);
+            });
+            updateUI();
+        }
+
+        function highlightInput(input, line, idx) {
+            const typed = input.value; let html = '';
+            for (let i = 0; i < line.length; i++) {
+                const ch = line[i];
+                if (typed[i] == null) { html += `<span>${escapeHtml(ch)}</span>`; }
+                else if (typed[i] === ch) { html += `<span class='char-correct'>${escapeHtml(ch)}</span>`; }
+                else { html += `<span class='char-wrong'>${escapeHtml(ch)}</span>`; }
+            }
+            input.previousSibling.innerHTML = html;
+        }
+
+        function checkLine(input, line, idx) {
+            const typed = input.value; let correctChars = 0;
+            for (let i = 0; i < Math.max(typed.length, line.length); i++) { if (typed[i] && typed[i] === line[i]) correctChars++; }
+            state.stats.correct += correctChars; state.stats.done++;
+            input.disabled = true; updateUI();
+        }
+
+        function startTimer() {
+            state.timer = setInterval(() => {
+                if (!state.paused) {
+                    state.elapsed++; updateUI();
+                    if (state.limit > 0 && state.elapsed >= state.limit) { finishSession(); }
+                }
+            }, 1000);
+        }
+
+        function setupMode() {
+            const m = state.mode;
+            if (m === 'timed') { state.limit = 60; }
+            else if (m === 'limit') { state.limit = 90; }
+            else { state.limit = 0; }
+        }
+
+        function finishSession() {
+            clearInterval(state.timer);
+            document.querySelectorAll('#typing input').forEach(i => i.disabled = true);
+            showSummary();
+        }
+
+        function showSummary() {
+            const acc = document.getElementById('accuracy').textContent;
+            const time = document.getElementById('time').textContent;
+            const done = state.stats.done;
+            const user = state.user || '匿名';
+            document.getElementById('summaryName').textContent = user;
+            document.getElementById('summaryTime').textContent = time;
+            document.getElementById('summaryAcc').textContent = acc;
+            document.getElementById('summaryDone').textContent = done;
+            document.getElementById('resultModal').classList.remove('hidden');
+            document.getElementById('resultModal').classList.add('flex');
+        }
+
+        document.getElementById('closeModal').addEventListener('click', () => {
+            document.getElementById('resultModal').classList.add('hidden');
+            document.getElementById('resultModal').classList.remove('flex');
+        });
+
+        // export CSV
+        document.getElementById('exportCsv').addEventListener('click', () => {
+            const acc = document.getElementById('accuracy').textContent;
+            const time = document.getElementById('time').textContent;
+            const rows = [["昵称", "时间", "准确率"], [state.user || '匿名', time, acc]];
+            const csv = rows.map(r => r.join(",")).join("\n");
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = 'typing_result.csv'; a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        document.getElementById('loadSample').addEventListener('click', () => renderLines(sample));
+        document.getElementById('resetBtn').addEventListener('click', () => renderLines(''));
+        document.getElementById('pauseBtn').addEventListener('click', () => { state.paused = !state.paused; document.getElementById('pauseBtn').textContent = state.paused ? '继续' : '暂停'; document.querySelectorAll('#typing input').forEach(i => i.disabled = state.paused); });
+        document.getElementById('endBtn').addEventListener('click', finishSession);
+
+        document.getElementById('mode').addEventListener('change', e => { state.mode = e.target.value; });
+
+        // nick
+        function saveNick() { const v = document.getElementById('nickname').value.trim(); if (!v) return; state.user = v; localStorage.setItem('jp_user', v); document.getElementById('currentUser').textContent = v; }
+        function loadNick() { const v = localStorage.getItem('jp_user'); if (v) { state.user = v; document.getElementById('nickname').value = v; document.getElementById('currentUser').textContent = v; } }
+        function logout() { state.user = null; localStorage.removeItem('jp_user'); document.getElementById('currentUser').textContent = '未登录'; document.getElementById('nickname').value = ''; }
+        document.getElementById('saveNick').addEventListener('click', saveNick);
+        document.getElementById('logout').addEventListener('click', logout);
+
+        loadNick(); updateUI();
+    </script>
+</body>
+
+</html>
